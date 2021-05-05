@@ -53,7 +53,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH latency AS (\n  WITH Q AS (\n\t  SELECT percentile_disc(0.5) within group (order by sleep_data.onset_latency) as latency\n\t  FROM sleep_data\n\t  WHERE sleep_data.summary_date >= now() - interval '30d'\n  )\n  SELECT latency, (now() AT TIME ZONE 'EST')::DATE as date FROM Q\n),\nday_of_week as (select extract(isodow from DATE 'tomorrow' AT TIME ZONE 'EST') as d),\nday as (\nselect CASE \n WHEN day_of_week.d =1 THEN 'MONDAY'\n WHEN day_of_week.d =2 THEN 'TUESDAY'\n WHEN day_of_week.d=3 THEN 'WEDNESDAY'\n WHEN day_of_week.d=4 THEN 'THURSDAY'\n WHEN day_of_week.d=5 THEN 'FRIDAY'\n WHEN day_of_week.d=6 THEN 'SATURDAY'\n WHEN day_of_week.d=7 THEN 'SUNDAY'\n ELSE 'OTHER'\n END from day_of_week \n)\nSELECT\n\t(\n\t\t(date_trunc('day', now() AT TIME ZONE 'EST' + INTERVAL '1 day') AT TIME ZONE 'EST') \n\t\t+ INTERVAL '4h'\n\t\t+ INTERVAL '1h' * sleep_schedule.hour \n\t\t+ INTERVAL '1m' * sleep_schedule.minute\n\t\t- sleep_coach.total_sleep_predicted * INTERVAL '1s'\n\t\t- latency.latency * INTERVAL '1s'\n\t) AT TIME ZONE 'EST' as time,\n\tsleep_coach.readiness_level as performance_level,\n \tsleep_coach.total_sleep_predicted,\n \tlatency.latency,\n \tformat('%s:%s', sleep_schedule.hour, sleep_schedule.minute) as wake_up_time\nFROM sleep_schedule\nJOIN day ON day.case = sleep_schedule.day\nJOIN sleep_coach ON sleep_coach.prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\nJOIN latency ON latency.date = (now() AT TIME ZONE 'EST')::DATE",
+          "rawSql": "WITH latency AS (\n  WITH Q AS (\n\t  SELECT percentile_disc(0.5) within group (order by sleep_data.onset_latency) as latency\n\t  FROM sleep_data\n\t  WHERE sleep_data.summary_date >= now() - interval '30d'\n  )\n  SELECT latency, (now() AT TIME ZONE 'CST')::DATE as date FROM Q\n),\nday_of_week as (select extract(isodow from DATE 'tomorrow' AT TIME ZONE 'CST') as d),\nday as (\nselect CASE \n WHEN day_of_week.d =1 THEN 'MONDAY'\n WHEN day_of_week.d =2 THEN 'TUESDAY'\n WHEN day_of_week.d=3 THEN 'WEDNESDAY'\n WHEN day_of_week.d=4 THEN 'THURSDAY'\n WHEN day_of_week.d=5 THEN 'FRIDAY'\n WHEN day_of_week.d=6 THEN 'SATURDAY'\n WHEN day_of_week.d=7 THEN 'SUNDAY'\n ELSE 'OTHER'\n END from day_of_week \n)\nSELECT\n\t(\n\t\t(date_trunc('day', now() AT TIME ZONE 'CST' + INTERVAL '1 day') AT TIME ZONE 'CST') \n\t\t+ INTERVAL '4h'\n\t\t+ INTERVAL '1h' * sleep_schedule.hour \n\t\t+ INTERVAL '1m' * sleep_schedule.minute\n\t\t- sleep_coach.total_sleep_predicted * INTERVAL '1s'\n\t\t- latency.latency * INTERVAL '1s'\n\t) AT TIME ZONE 'CST' as time,\n\tsleep_coach.readiness_level as performance_level,\n \tsleep_coach.total_sleep_predicted,\n \tlatency.latency,\n \tformat('%s:%s', sleep_schedule.hour, sleep_schedule.minute) as wake_up_time\nFROM sleep_schedule\nJOIN day ON day.case = sleep_schedule.day\nJOIN sleep_coach ON sleep_coach.prediction_date::DATE = (now() AT TIME ZONE 'CST')::DATE\nJOIN latency ON latency.date = (now() AT TIME ZONE 'CST')::DATE",
           "refId": "A",
           "select": [
             [
@@ -156,7 +156,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as PEAK\nFROM sleep_coach\nWHERE readiness_level='PEAK' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\n",
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as PEAK\nFROM sleep_coach\nWHERE readiness_level='PEAK' AND prediction_date::DATE = (now() AT TIME ZONE 'CST')::DATE\n",
           "refId": "A",
           "select": [
             [
@@ -182,7 +182,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as GET_BY\nFROM sleep_coach\nWHERE readiness_level='GET_BY' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE\n\n",
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as GET_BY\nFROM sleep_coach\nWHERE readiness_level='GET_BY' AND prediction_date::DATE = (now() AT TIME ZONE 'CST')::DATE\n\n",
           "refId": "B",
           "select": [
             [
@@ -208,7 +208,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as EASY\nFROM sleep_coach\nWHERE readiness_level='EASY' AND prediction_date::DATE = (now() AT TIME ZONE 'EST')::DATE",
+          "rawSql": "SELECT \nprediction_date as time,\ntotal_sleep_predicted as EASY\nFROM sleep_coach\nWHERE readiness_level='EASY' AND prediction_date::DATE = (now() AT TIME ZONE 'CST')::DATE",
           "refId": "C",
           "select": [
             [
@@ -509,7 +509,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  readiness_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time",
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'CST') as time,\n  score\nFROM\n  readiness_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time",
           "refId": "A",
           "select": [
             [
@@ -621,7 +621,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'CST') as time,\n  score\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
           "refId": "A",
           "select": [
             [
@@ -733,7 +733,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  score\nFROM\n  activity_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'CST') as time,\n  score\nFROM\n  activity_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP)\nORDER BY time\n",
           "refId": "A",
           "select": [
             [
@@ -846,7 +846,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH Q AS (\n\tSELECT \n\t    percentile_disc(0.5) within group (order by sleep_data.onset_latency) as median_latency\n  \tFROM sleep_data\n  \tWHERE sleep_data.summary_date >= now() - interval '30d'\n)\nSELECT median_latency, now() AT TIME ZONE 'EST' as time FROM Q\n",
+          "rawSql": "WITH Q AS (\n\tSELECT \n\t    percentile_disc(0.5) within group (order by sleep_data.onset_latency) as median_latency\n  \tFROM sleep_data\n  \tWHERE sleep_data.summary_date >= now() - interval '30d'\n)\nSELECT median_latency, now() AT TIME ZONE 'CST' as time FROM Q\n",
           "refId": "A",
           "select": [
             [
@@ -931,7 +931,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n  onset_latency\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP )\nORDER BY time\n",
+          "rawSql": "SELECT\n  (summary_date::TIMESTAMP AT TIME ZONE 'CST') as time,\n  onset_latency\nFROM\n  sleep_data\nWHERE\n  $__timeFilter(summary_date::TIMESTAMP )\nORDER BY time\n",
           "refId": "A",
           "select": [
             [
@@ -957,7 +957,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "WITH Q AS (\n  SELECT \n    (summary_date::TIMESTAMP AT TIME ZONE 'EST') as time,\n    AVG(onset_latency) OVER(ORDER BY (summary_date::TIMESTAMP AT TIME ZONE 'EST') ROWS BETWEEN 7 PRECEDING AND CURRENT ROW) AS value,\n    'Weekly Moving Average' as metric \n  FROM sleep_data\n  ORDER BY time ASC\n)\nSELECT time, value, metric FROM Q\nWHERE $__timeFilter(time)",
+          "rawSql": "WITH Q AS (\n  SELECT \n    (summary_date::TIMESTAMP AT TIME ZONE 'CST') as time,\n    AVG(onset_latency) OVER(ORDER BY (summary_date::TIMESTAMP AT TIME ZONE 'CST') ROWS BETWEEN 7 PRECEDING AND CURRENT ROW) AS value,\n    'Weekly Moving Average' as metric \n  FROM sleep_data\n  ORDER BY time ASC\n)\nSELECT time, value, metric FROM Q\nWHERE $__timeFilter(time)",
           "refId": "B",
           "select": [
             [
@@ -1129,7 +1129,7 @@
           "group": [],
           "metricColumn": "name",
           "rawQuery": true,
-          "rawSql": "SELECT\n  event_datetime AT TIME ZONE 'EST' AS \"time\",\n  name AS metric\nFROM events\nWHERE\n  $__timeFilter(event_datetime)\nORDER BY event_datetime",
+          "rawSql": "SELECT\n  event_datetime AT TIME ZONE 'CST' AS \"time\",\n  name AS metric\nFROM events\nWHERE\n  $__timeFilter(event_datetime)\nORDER BY event_datetime",
           "refId": "A",
           "select": [
             [
@@ -1203,7 +1203,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT\n  (prediction_date::TIMESTAMP AT TIME ZONE 'EST') AS time,\n  total_sleep_obtained,\n  total_sleep_predicted\nFROM\n  sleep_coach\nWHERE\n  $__timeFilter(prediction_date::TIMESTAMP)\nORDER BY id\n",
+          "rawSql": "SELECT\n  (prediction_date::TIMESTAMP AT TIME ZONE 'CST') AS time,\n  total_sleep_obtained,\n  total_sleep_predicted\nFROM\n  sleep_coach\nWHERE\n  $__timeFilter(prediction_date::TIMESTAMP)\nORDER BY id\n",
           "refId": "A",
           "select": [
             [
